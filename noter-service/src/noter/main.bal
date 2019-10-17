@@ -20,6 +20,7 @@ service noterService on new http:Listener(9090) {
         methods: ["POST"]
     }
 
+    // not tested
     resource function addNotice(http:Caller caller, http:Request request) returns error? {
         http:Response res = new;
         json rawJSON = check request.getJsonPayload();
@@ -54,9 +55,95 @@ service noterService on new http:Listener(9090) {
     }
 
     @http:ResourceConfig {
+        path: "/getNotices",
+        methods: ["POST"]
+    }
+    // not tested
+    resource function getNotices(http:Caller caller, http:Request request) returns error?{
+        http:Response res = new;
+        res.setJsonPayload(<@untainted>notices, contentType = "application/json");
+        check caller->respond(res);
+    }
+
+    @http:ResourceConfig {
+        path: "/updateNotice",
+        methods: ["POST"]
+    }
+    // not tested
+    resource function updateNotice(http:Caller caller, http:Request request) returns error? {
+        http:Response res = new;
+        json rawJSON = check request.getJsonPayload();
+        map<json> renderedJson = check map<json>.constructFrom(rawJSON);
+        // get the fields
+        string id = renderedJson["id"].toString();
+        string topic = renderedJson["topic"].toString();
+        string description = renderedJson["description"].toString();
+        var day = 'int:fromString(renderedJson["day"].toString());
+        var weekNumber = 'int:fromString(renderedJson["weekNumber"].toString());
+        var month = 'int:fromString(renderedJson["month"].toString());
+        
+        // make sure id exists
+        if(notices.hasKey(id)){
+            // carry out update to fields which are not empty
+            if(topic != ""){
+                map<json> m = <map<json>> notices[id];
+                m["topic"] = topic;
+                notices[id] = checkpanic json.constructFrom(m);                
+            }
+            if(description != ""){
+                map<json> m = <map<json>> notices[id];
+                m["description"] = description;
+                notices[id] = checkpanic json.constructFrom(m);  
+            }
+            if(day is int){
+                map<json> m = <map<json>> notices[id];
+                m["day"] = day;
+                notices[id] = checkpanic json.constructFrom(m);
+            }
+            if(weekNumber is int){
+                map<json> m = <map<json>> notices[id];
+                m["weekNumber"] = weekNumber;
+                notices[id] = checkpanic json.constructFrom(m);
+            }
+            if(month is int){
+                map<json> m = <map<json>> notices[id];
+                m["month"] = month;
+                notices[id] = checkpanic json.constructFrom(m);  
+            }
+        }
+
+        res.setJsonPayload(<@untainted>rawJSON, contentType = "application/json");
+        check caller->respond(res);
+    }
+
+    @http:ResourceConfig {
+        path: "/deleteNotice",
+        methods: ["POST"]
+    }
+    // not tested
+    resource function deleteNotice(http:Caller caller, http:Request request) returns error? {
+        http:Response res = new;
+        json rawJSON = check request.getJsonPayload();
+        map<json> renderedJson = check map<json>.constructFrom(rawJSON);
+        // get the fields
+        string id = renderedJson["id"].toString();
+        
+        // make sure id exists
+        if(notices.hasKey(id)){
+            var e = notices.remove(id);
+            res.setJsonPayload(<@untainted>"delete successful", contentType = "application/json");
+        }else{
+            res.setJsonPayload(<@untainted>"key not found", contentType = "application/json");
+        }
+        check caller->respond(res);
+    }
+
+    @http:ResourceConfig {
         methods: ["POST"],
         path: "/validate"
     }
+
+    // not tested
     resource function validate(http:Caller caller, http:Request req) returns error? {
         json jsonValue = checkpanic req.getJsonPayload();
         map<json> renderedJson = check map<json>.constructFrom(jsonValue);
@@ -86,6 +173,7 @@ function getSha512(string data) returns string {
     return output.toString();
 }
 
+// not tested
 function gossip() {
     foreach string p in instance_ports {
         http:Client clientEP = new ("http://localhost:" + p + "/");
