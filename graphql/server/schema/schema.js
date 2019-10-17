@@ -10,11 +10,13 @@ const {
     GraphQLNonNull} = graphql;
 
 // dummy data
-var notices = [ //day - month - year <- this format is suitable for upcoming events
+var notices = [ 
     {topic: 'the first topic', description: 'the first description', id: '1', day: 10,  weekNumber: 4, month: 8},
     {topic: 'the second topic', description: 'the second description', id: '2', day: 4, weekNumber: 8, month: 10},
     {topic: 'the third topic', description: 'the third description', id: '3', day:5, weekNumber: 15, month: 9}
 ];
+
+const instance_port_pool = [9091, 9092, 9093, 9094];
 
 const NoticeType = new GraphQLObjectType({
     name: 'Notice',
