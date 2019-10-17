@@ -7,30 +7,14 @@ const {
     GraphQLSchema,
     GraphQLID,
     GraphQLInt,
-    GraphQLList,
-    GraphQLScalarType} = graphql;
+    GraphQLList} = graphql;
 
 // dummy data
 var notices = [ //day - month - year <- this format is suitable for upcoming events
-    {topic: 'the first topic', description: 'the first description', id: '1', submissionDate: new Date('10-08-2019'), weekNumber: 4, month: 8},
-    {topic: 'the second topic', description: 'the second description', id: '2', submissionDate: new Date('4-10-2019'), weekNumber: 8, month: 10},
-    {topic: 'the third topic', description: 'the third description', id: '3', submissionDate: new Date('5-09-2019'), weekNumber: 15, month: 9}
+    {topic: 'the first topic', description: 'the first description', id: '1', day: 10,  weekNumber: 4, month: 8},
+    {topic: 'the second topic', description: 'the second description', id: '2', day: 4, weekNumber: 8, month: 10},
+    {topic: 'the third topic', description: 'the third description', id: '3', day:5, weekNumber: 15, month: 9}
 ];
-
-// define date scalar
-const GQDate = new GraphQLScalarType({
-    name: "GQDate",
-    description: "Date Type",
-    parseValue(value){
-        return value;
-    },
-    serialize(value){
-        return value;
-    },
-    parseLiteral(ast){
-        return new DataCue(ast.value);
-    }
-});
 
 const NoticeType = new GraphQLObjectType({
     name: 'Notice',
@@ -38,9 +22,9 @@ const NoticeType = new GraphQLObjectType({
         id: {type: GraphQLID},
         topic: {type: GraphQLString},
         description: {type: GraphQLString},
+        day: {type: GraphQLInt},
         weekNumber: {type: GraphQLInt},
-        month: {type: GraphQLInt},
-        submissionDate: GQDate
+        month: {type: GraphQLInt}
     })
 });
 
@@ -51,6 +35,7 @@ const RootQuery = new GraphQLObjectType({
         notice: {
             type: NoticeType,
             args: {id: {type:GraphQLID}},
+            description: 'Return notice of specified id',
             resolve(parent, args){
                 // code to get data from source
                 return _.find(notices, {id: args.id});
@@ -58,6 +43,7 @@ const RootQuery = new GraphQLObjectType({
         },
         notices: {
             type: new GraphQLList(NoticeType),
+            description: 'Returns all notices',
             resolve(parent, args){
                 // code to get data from source
                 return notices;
@@ -66,34 +52,57 @@ const RootQuery = new GraphQLObjectType({
         // heck, doing this to keep it simple and easier
         dayNotices: {
             type: new GraphQLList(NoticeType),
-            args: {submissionDate: {type: GQDate}},
+            args: {day: {type: GraphQLInt}},
+            description: 'Return notices of specific day',
             resolve(parent, args){
                 // code to get data from source
-                return _.filter(notices, {submissionDate: args.submissionDate});
+                return _.filter(notices, {day: args.day});
             }
         },
         weekNotices: {
             type: new GraphQLList(NoticeType),
             args: {weekNumber: {type:GraphQLInt}},
+            description: 'Return notices of specific week',
             resolve(parent, args){
                 // code to get data from source
-                return _.filter(notices, {week: args.weekNumber});
+                return _.filter(notices, {weekNumber: args.weekNumber});
             }
         },
-        // idk how the GQDate can be used or it's point 😅
-        // this seems more simple and elegant imo
         monthNotices: {
             type: new GraphQLList(NoticeType),
             args: {month: {type:GraphQLInt}},
+            description: 'Return notices of specific month',
             resolve(parent, args){
                 // code to get data from source
                 return _.filter(notices, {month: args.month});
             }
-        },
-        GQDate     
+        }    
     }
 })
 
+const Mutation = new GraphQLObjectType({
+    name: 'Mutation',
+    fields: {
+        addNotice: {
+            type: NoticeType,
+            args: {
+                id: {type: GraphQLID},
+                topic: {type: GraphQLString},
+                description: {type: GraphQLString},
+                day: {type: GraphQLInt},
+                weekNumber: {type: GraphQLInt},
+                month: {type: GraphQLInt}
+            },
+            resolve(parent, args){
+                // code to send data to random server instance
+                // ...
+                return args
+            }
+        }
+    }
+});
+
 module.exports = new GraphQLSchema({
-    query: RootQuery
-})
+    query: RootQuery,
+    mutation: Mutation
+});
