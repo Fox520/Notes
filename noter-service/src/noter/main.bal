@@ -1,19 +1,21 @@
+import ballerina/crypto;
 import ballerina/http;
 import ballerina/lang.'int;
-import ballerina/crypto;
+import ballerina/log;
 
+// something more elegant may be needed here
 string[] instance_ports = ["9091", "9092", "9093", "9094"];
-map<json> ledger = {"data": "", "hash": "", "previous-hash": ""};
+map<json> ledger = {"data": "", "hash": "", "previous-hash": "", "height": 0};
 // maybe use database in future
 map<json> notices = {};
-
+int count = 0;
 @http:ServiceConfig {
     basePath: "/"
 }
 
 service noterService on new http:Listener(9090) {
-    
-    @http:ResourceConfig{
+
+    @http:ResourceConfig {
         path: "/addNotice",
         methods: ["POST"]
     }
@@ -33,27 +35,60 @@ service noterService on new http:Listener(9090) {
         // add notice to storage, adding to ledger, gossip
         json notice = {"id": id, "topic": topic, "description": description, "day": day, "weekNumber": weekNumber, "month": month};
         notices[id] = notice;
-        
+
         string noticeHash = getSha512(notice.toString());
         ledger["data"] = notice;
+        // current becomes previous hash
+        if(ledger["height"] != 0){
+            ledger["previous-hash"] = ledger["hash"];
+        }
         ledger["hash"] = noticeHash;
+        count = count + 1;
+        ledger["height"] = count;
         // no need to touch 'previous-hash'
-
         // gossip to other instances
+        gossip();
+        // return the data received as is
+        res.setJsonPayload(<@untainted>rawJSON, contentType = "application/json");
+        check caller->respond(res);
+    }
 
-        res.setJsonPayload(<@untainted> rawJSON, contentType = "application/json");
-        check caller -> respond(res);
+    @http:ResourceConfig {
+        methods: ["POST"],
+        path: "/validate"
+    }
+    resource function validate(http:Caller caller, http:Request req) returns error? {
+        json jsonValue = checkpanic req.getJsonPayload();
+        map<json> renderedJson = check map<json>.constructFrom(jsonValue);
+        // The validation entails checking the hash of the previous ledger and the signature of
+        // the current one
+        // check if is genesis to us
+        if(ledger["height"] == 0){
+            // since we have nothing to compare with, just accept
+            ledger["data"] = renderedJson["data"];
+            ledger["hash"] = renderedJson["hash"];
+            ledger["height"] = check 'int:fromString(ledger["height"].toString()) + 1;
+            log:printInfo("ledger accepted as genesis");
+        }else if(renderedJson["previous-hash"] == ledger["hash"]){
+            ledger["previous-hash"] = ledger["hash"];
+            ledger["data"] = renderedJson["data"];
+            ledger["hash"] = renderedJson["hash"];
+            ledger["height"] = check 'int:fromString(ledger["height"].toString()) + 1;
+            log:printInfo("ledger accepted");
+        }else{
+            log:printInfo("ledger not accepted");
+        }
     }
 }
 
-function getSha512(string data) returns string{
+function getSha512(string data) returns string {
     byte[] output = crypto:hashSha512(data.toBytes());
     return output.toString();
 }
 
 function gossip() {
     foreach string p in instance_ports {
-        http:Client clientEP = new("http://localhost:"+p+"/");
+        http:Client clientEP = new ("http://localhost:" + p + "/");
         var response = clientEP->post("/validate", ledger);
     }
 }
