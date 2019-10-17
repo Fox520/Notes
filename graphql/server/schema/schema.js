@@ -6,7 +6,8 @@ const {
     GraphQLString,
     GraphQLSchema,
     GraphQLInt,
-    GraphQLList} = graphql;
+    GraphQLList,
+    GraphQLNonNull} = graphql;
 
 // dummy data
 var notices = [ //day - month - year <- this format is suitable for upcoming events
@@ -85,12 +86,39 @@ const Mutation = new GraphQLObjectType({
         addNotice: {
             type: NoticeType,
             args: {
-                id: {type: GraphQLInt},
+                id: {type: new GraphQLNonNull(GraphQLInt)},
+                topic: {type: new GraphQLNonNull(GraphQLString)},
+                description: {type: GraphQLString},
+                day: {type: new GraphQLNonNull(GraphQLInt)},
+                weekNumber: {type: new GraphQLNonNull(GraphQLInt)},
+                month: {type: new GraphQLNonNull(GraphQLInt)}
+            },
+            resolve(parent, args){
+                // code to send data to random server instance
+                // ...
+                return args
+            }
+        },
+        updateNotice: {
+            type: NoticeType,
+            args: {
+                id: {type: new GraphQLNonNull(GraphQLInt)},
                 topic: {type: GraphQLString},
                 description: {type: GraphQLString},
                 day: {type: GraphQLInt},
                 weekNumber: {type: GraphQLInt},
                 month: {type: GraphQLInt}
+            },
+            resolve(parent, args){
+                // code to send data to random server instance
+                // ...
+                return args
+            }
+        },
+        removeNotice: {
+            type: NoticeType,
+            args: {
+                id: {type: new GraphQLNonNull(GraphQLInt)}
             },
             resolve(parent, args){
                 // code to send data to random server instance
