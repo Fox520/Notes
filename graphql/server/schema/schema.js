@@ -5,7 +5,6 @@ const {
     GraphQLObjectType,
     GraphQLString,
     GraphQLSchema,
-    GraphQLID,
     GraphQLInt,
     GraphQLList} = graphql;
 
@@ -19,7 +18,7 @@ var notices = [ //day - month - year <- this format is suitable for upcoming eve
 const NoticeType = new GraphQLObjectType({
     name: 'Notice',
     fields: () => ({
-        id: {type: GraphQLID},
+        id: {type: GraphQLInt},
         topic: {type: GraphQLString},
         description: {type: GraphQLString},
         day: {type: GraphQLInt},
@@ -34,7 +33,7 @@ const RootQuery = new GraphQLObjectType({
     fields: {
         notice: {
             type: NoticeType,
-            args: {id: {type:GraphQLID}},
+            args: {id: {type:GraphQLInt}},
             description: 'Return notice of specified id',
             resolve(parent, args){
                 // code to get data from source
@@ -86,7 +85,7 @@ const Mutation = new GraphQLObjectType({
         addNotice: {
             type: NoticeType,
             args: {
-                id: {type: GraphQLID},
+                id: {type: GraphQLInt},
                 topic: {type: GraphQLString},
                 description: {type: GraphQLString},
                 day: {type: GraphQLInt},
