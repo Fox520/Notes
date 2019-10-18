@@ -66,6 +66,17 @@ service noterService on new http:Listener(9090) {
     }
 
     @http:ResourceConfig {
+        path: "/getNotice/{id}",
+        methods: ["GET"]
+    }
+    // not tested
+    resource function getNotice(http:Caller caller, http:Request request, string id) returns error?{
+        http:Response res = new;
+        res.setJsonPayload(<@untainted>notices[id], contentType = "application/json");
+        check caller->respond(res);
+    }
+
+    @http:ResourceConfig {
         path: "/updateNotice",
         methods: ["POST"]
     }
