@@ -3,9 +3,9 @@ import ballerina/http;
 import ballerina/lang.'int;
 import ballerina/log;
 
-int myPort = 9090; // change for every instance
+int myPort = 9091; // change for every instance
 // something more elegant may be needed here
-string[] instance_ports = ["9090", "9091", "9092", "9093", "9094"];
+string[] instance_ports = ["9090", "9091", "9092"];//, "9093", "9094"];
 
 map<json> ledger = {"data": "", "hash": "", "previous-hash": "", "height": 0};
 // maybe use database in future
@@ -178,6 +178,7 @@ service noterService on new http:Listener(myPort) {
         }else{
             log:printInfo("ledger not accepted");
         }
+        var x = caller -> ok();
     }
 }
 
