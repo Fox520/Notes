@@ -18,7 +18,7 @@ var notices = [
 ];
 
 var url = "http://192.168.56.101:";
-const instance_port_pool = [9090, 9091, 9092, 9093];
+const instance_port_pool = [9090, 9091, 9092];//, 9093];
 
 const NoticeType = new GraphQLObjectType({
     name: 'Notice',
@@ -58,25 +58,17 @@ const RootQuery = new GraphQLObjectType({
             type: new GraphQLList(NoticeType),
             description: 'Returns all notices',
             resolve(parent, args) {
-                var options = {
-                    method: 'POST',
-                    uri: randomAddress() + "/getNotices",
-                    json: true // Automatically stringifies the body to JSON
-                };
-                var out = rp(options)
-                    .then(function (obj) {
-                        var arr = []
-                        Object.keys(obj).forEach(function(key) {
-                            arr.push(obj[key])
-                         });
-                        return arr;
+                var oo = rp(randomAddress() + "/getNotices")
+                    .then(function (str) {
+                        var json = JSON.parse(str)
+                        return json;
                     })
                     .catch(function (err) {
                         // Crawling failed...
                         console.log(err);
                         return err;
                     });
-                return out
+                return oo;
             }
         },
         // heck, doing this to keep it simple and easier
@@ -160,7 +152,7 @@ const Mutation = new GraphQLObjectType({
 });
 
 function randomAddress() {
-    return url + "9090";//instance_port_pool[Math.floor(Math.random() * instance_port_pool.length)]
+    return url + instance_port_pool[Math.floor(Math.random() * instance_port_pool.length)]
 }
 
 module.exports = new GraphQLSchema({
