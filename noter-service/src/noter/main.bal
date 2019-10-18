@@ -4,7 +4,6 @@ import ballerina/lang.'int;
 import ballerina/log;
 
 int myPort = 9091; // change for every instance
-// something more elegant may be needed here
 string[] instance_ports = ["9090", "9091", "9092"];//, "9093", "9094"];
 
 map<json> ledger = {"data": "", "hash": "", "previous-hash": "", "height": 0};
@@ -21,8 +20,6 @@ service noterService on new http:Listener(myPort) {
         path: "/addNotice",
         methods: ["POST"]
     }
-
-    // not tested
     resource function addNotice(http:Caller caller, http:Request request) returns error? {
         http:Response res = new;
         json rawJSON = check request.getJsonPayload();
@@ -60,7 +57,6 @@ service noterService on new http:Listener(myPort) {
         path: "/getNotices",
         methods: ["POST"]
     }
-    // not tested
     resource function getNotices(http:Caller caller, http:Request request) returns error?{
         http:Response res = new;
         res.setJsonPayload(<@untainted>notices, contentType = "application/json");
@@ -71,7 +67,7 @@ service noterService on new http:Listener(myPort) {
         path: "/getNotice/{id}",
         methods: ["GET"]
     }
-    // not tested
+    // TODO: get from other instances if notice not found here
     resource function getNotice(http:Caller caller, http:Request request, string id) returns error?{
         http:Response res = new;
         res.setJsonPayload(<@untainted>notices[id], contentType = "application/json");
@@ -82,7 +78,6 @@ service noterService on new http:Listener(myPort) {
         path: "/updateNotice",
         methods: ["POST"]
     }
-    // not tested
     resource function updateNotice(http:Caller caller, http:Request request) returns error? {
         http:Response res = new;
         json rawJSON = check request.getJsonPayload();
@@ -123,30 +118,28 @@ service noterService on new http:Listener(myPort) {
                 m["month"] = month;
                 notices[id] = checkpanic json.constructFrom(m);  
             }
+            res.setJsonPayload(<@untainted>rawJSON, contentType = "application/json");
+        }else {
+            res.setJsonPayload("id not found", contentType = "application/json");
         }
 
-        res.setJsonPayload(<@untainted>rawJSON, contentType = "application/json");
         check caller->respond(res);
     }
 
     @http:ResourceConfig {
-        path: "/deleteNotice",
-        methods: ["POST"]
+        path: "/deleteNotice/{id}",
+        methods: ["GET"]
     }
-    // not tested
-    resource function deleteNotice(http:Caller caller, http:Request request) returns error? {
+    resource function deleteNotice(http:Caller caller, http:Request request, string id) returns error? {
         http:Response res = new;
         json rawJSON = check request.getJsonPayload();
-        map<json> renderedJson = check map<json>.constructFrom(rawJSON);
-        // get the fields
-        string id = renderedJson["id"].toString();
-        
+        map<json> renderedJson = check map<json>.constructFrom(rawJSON);        
         // make sure id exists
         if(notices.hasKey(id)){
             var e = notices.remove(id);
             res.setJsonPayload(<@untainted>"delete successful", contentType = "application/json");
         }else{
-            res.setJsonPayload(<@untainted>"key not found", contentType = "application/json");
+            res.setJsonPayload(<@untainted>"id not found", contentType = "application/json");
         }
         check caller->respond(res);
     }
@@ -156,7 +149,6 @@ service noterService on new http:Listener(myPort) {
         path: "/validate"
     }
 
-    // not tested
     resource function validate(http:Caller caller, http:Request req) returns error? {
         json jsonValue = checkpanic req.getJsonPayload();
         map<json> renderedJson = check map<json>.constructFrom(jsonValue);
@@ -187,7 +179,6 @@ function getSha512(string data) returns string {
     return output.toString();
 }
 
-// not tested
 function gossip() {
     foreach string p in instance_ports {
         if(p != myPort.toString()){
