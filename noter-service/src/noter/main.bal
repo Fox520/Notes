@@ -60,7 +60,27 @@ service noterService on new http:Listener(myPort) {
     }
     resource function getNotices(http:Caller caller, http:Request request) returns error?{
         http:Response res = new;
-        res.setJsonPayload(<@untainted>notices, contentType = "application/json");
+        json[] arr = requestAllNotices();
+        json[] returnArr = [];
+
+        foreach var n in notices {
+            arr[arr.length()] = n;
+        }
+        foreach var a in arr {
+            returnArr[returnArr.length()] = a;
+        }
+
+        // var backupNotices = notices;
+        // foreach any item in arr {
+        //     if(item is json && item != ""){
+        //         map<json> jj = checkpanic map<json>.constructFrom(item);
+        //         io:println(jj["id"].toString());
+        //         io:println("_________________________");
+        //         notices[jj["id"].toString()] = item;
+        //     }
+        // }
+        res.setJsonPayload(<@untainted>returnArr, contentType = "application/json");
+        // io:println(notices);
         check caller->respond(res);
     }
 
@@ -84,7 +104,7 @@ service noterService on new http:Listener(myPort) {
         check caller->respond(res);
     }
 
-     @http:ResourceConfig {
+    @http:ResourceConfig {
         path: "/internalFindNotice/{id}",
         methods: ["GET"]
     }
@@ -92,10 +112,28 @@ service noterService on new http:Listener(myPort) {
         http:Response res = new;
         if(notices.hasKey(id)){
             res.setJsonPayload(<@untainted>notices[id], contentType = "application/json");
+            check caller->respond(res);
         }else{
-            res.setJsonPayload(<@untainted>"", contentType = "application/json");
+            check caller->ok();
         }
+    }
+
+    @http:ResourceConfig {
+        path: "/internalAllNotices",
+        methods: ["GET"]
+    }
+    resource function internalAllNotices(http:Caller caller, http:Request request) returns error?{
+        http:Response res = new;
+        json[] xyz = [];
+        foreach var n in notices{
+            xyz[xyz.length()] = n;
+        }
+        if(xyz.length() > 0){
+            res.setJsonPayload(<@untainted>xyz, contentType = "application/json");
         check caller->respond(res);
+        }else{
+            check caller->ok();
+        }
     }
 
     @http:ResourceConfig {
@@ -228,17 +266,19 @@ function requestNotice(string id) returns json{
     return "";
 }
 
-function requestAllNotices() returns json{
+function requestAllNotices() returns json[]{
     json[] m = [];
     
     foreach string p in instance_ports {
         if(p != myPort.toString()){
             http:Client clientEP = new ("http://localhost:" + p);
-            var response = clientEP->get("/getNotices");
+            var response = clientEP->get("/internalAllNotices");
             if(response is http:Response){
                 var x = response.getJsonPayload();
-                if(x is json){
-                    m[m.length()] = x;
+                if(x is json[]){
+                    foreach var n in x{
+                        m[m.length()] = n;
+                    }
                 }
             }
         }
