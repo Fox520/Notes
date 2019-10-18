@@ -1,5 +1,5 @@
-# Ballerina-Notes-Client
-Client for notice board application using a micro-service architectural style
+# Notes
+Notice board application using a micro-service architectural style
 ## Given instructions
 Distributed Systems Programming (DSP620S)
 In this project, your task is to design and implement Notes, a notice board
