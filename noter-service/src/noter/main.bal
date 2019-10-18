@@ -177,6 +177,6 @@ function getSha512(string data) returns string {
 function gossip() {
     foreach string p in instance_ports {
         http:Client clientEP = new ("http://localhost:" + p + "/");
-        var response = clientEP->post("/validate", ledger);
+        var response = clientEP->post("/validate", <@untainted>ledger);
     }
 }
