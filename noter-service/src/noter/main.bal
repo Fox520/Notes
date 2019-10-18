@@ -3,8 +3,10 @@ import ballerina/http;
 import ballerina/lang.'int;
 import ballerina/log;
 
+int myPort = 9090; // change for every instance
 // something more elegant may be needed here
-string[] instance_ports = ["9091", "9092", "9093", "9094"];
+string[] instance_ports = ["9090", "9091", "9092", "9093", "9094"];
+
 map<json> ledger = {"data": "", "hash": "", "previous-hash": "", "height": 0};
 // maybe use database in future
 map<json> notices = {};
@@ -13,7 +15,7 @@ int count = 0;
     basePath: "/"
 }
 
-service noterService on new http:Listener(9090) {
+service noterService on new http:Listener(myPort) {
 
     @http:ResourceConfig {
         path: "/addNotice",
@@ -187,7 +189,9 @@ function getSha512(string data) returns string {
 // not tested
 function gossip() {
     foreach string p in instance_ports {
-        http:Client clientEP = new ("http://localhost:" + p + "/");
-        var response = clientEP->post("/validate", <@untainted>ledger);
+        if(p != myPort.toString()){
+            http:Client clientEP = new ("http://localhost:" + p + "/");
+            var response = clientEP->post("/validate", <@untainted>ledger);
+        }
     }
 }
