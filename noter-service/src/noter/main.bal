@@ -4,21 +4,23 @@ import ballerina/lang.'int;
 import ballerina/log;
 import ballerina/docker;
 
-int myPort = 9090; // change for every instance
-// something more elegant may be needed here
+int myPort = 9094; // change for every instance
 string[] instance_ports = ["9090", "9091", "9092", "9093", "9094"];
 
 map<json> ledger = {"data": "", "hash": "", "previous-hash": "", "height": 0};
 // maybe use database in future
 map<json> notices = {};
 int count = 0;
+// use an address that can be accessed by all containers
+// localhost refers to the container itself
+string addressPart = "http://192.168.56.101:"; // change this according to machine ip
 
 @docker:Expose {}
 // change number to equal myPort variable for each instance run
-listener http:Listener mylistener = new(9090);
+listener http:Listener mylistener = new(9094);
 
 @docker:Config {
-    name: "notes0",
+    name: "notes4",
     tag: "v1.0"
 }
 
@@ -81,17 +83,7 @@ service noterService on mylistener {
             returnArr[returnArr.length()] = a;
         }
 
-        // var backupNotices = notices;
-        // foreach any item in arr {
-        //     if(item is json && item != ""){
-        //         map<json> jj = checkpanic map<json>.constructFrom(item);
-        //         io:println(jj["id"].toString());
-        //         io:println("_________________________");
-        //         notices[jj["id"].toString()] = item;
-        //     }
-        // }
         res.setJsonPayload(<@untainted>returnArr, contentType = "application/json");
-        // io:println(notices);
         check caller->respond(res);
     }
 
@@ -255,7 +247,7 @@ function getSha512(string data) returns string {
 function gossip() {
     foreach string p in instance_ports {
         if(p != myPort.toString()){
-            http:Client clientEP = new ("http://localhost:" + p);
+            http:Client clientEP = new (addressPart + p);
             var response = clientEP->post("/validate", <@untainted>ledger);
         }
     }
@@ -264,7 +256,7 @@ function gossip() {
 function requestNotice(string id) returns json{
     foreach string p in instance_ports {
         if(p != myPort.toString()){
-            http:Client clientEP = new ("http://localhost:" + p);
+            http:Client clientEP = new (addressPart + p);
             var response = clientEP->get("/internalFindNotice/"+id);
             if(response is http:Response){
                 var x = response.getJsonPayload();
@@ -282,7 +274,7 @@ function requestAllNotices() returns json[]{
     
     foreach string p in instance_ports {
         if(p != myPort.toString()){
-            http:Client clientEP = new ("http://localhost:" + p);
+            http:Client clientEP = new (addressPart + p);
             var response = clientEP->get("/internalAllNotices");
             if(response is http:Response){
                 var x = response.getJsonPayload();
