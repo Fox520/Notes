@@ -105,7 +105,7 @@ service noterService on mylistener {
             res.setJsonPayload(<@untainted>notices[id], contentType = "application/json");
         }else{
             // request from other instances
-            json result = requestNotice(id);
+            json result = requestNotice(<@untainted>id);
             if(result == ""){
                 res.setJsonPayload(<@untainted>"notice not found", contentType = "application/json");
             }else{
