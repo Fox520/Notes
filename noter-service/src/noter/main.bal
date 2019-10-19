@@ -4,7 +4,7 @@ import ballerina/lang.'int;
 import ballerina/log;
 import ballerina/docker;
 
-int myPort = 9094; // change for every instance
+int myPort = 9090; // change for every instance
 string[] instance_ports = ["9090", "9091", "9092", "9093", "9094"];
 
 map<json> ledger = {"data": "", "hash": "", "previous-hash": "", "height": 0};
@@ -17,10 +17,10 @@ string addressPart = "http://192.168.56.101:"; // change this according to machi
 
 @docker:Expose {}
 // change number to equal myPort variable for each instance run
-listener http:Listener mylistener = new(9094);
+listener http:Listener mylistener = new(9090);
 
 @docker:Config {
-    name: "notes4",
+    name: "notes0",
     tag: "v1.0"
 }
 
