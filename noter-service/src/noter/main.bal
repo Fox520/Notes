@@ -2,8 +2,9 @@ import ballerina/crypto;
 import ballerina/http;
 import ballerina/lang.'int;
 import ballerina/log;
+import ballerina/docker;
 
-int myPort = 9092; // change for every instance
+int myPort = 9090; // change for every instance
 // something more elegant may be needed here
 string[] instance_ports = ["9090", "9091", "9092"];//, "9093", "9094"];
 
@@ -11,11 +12,21 @@ map<json> ledger = {"data": "", "hash": "", "previous-hash": "", "height": 0};
 // maybe use database in future
 map<json> notices = {};
 int count = 0;
+
+@docker:Expose {}
+// change number to equal myPort variable for each instance run
+listener http:Listener mylistener = new(9090);
+
+@docker:Config {
+    name: "notes1",
+    tag: "v1.0"
+}
+
 @http:ServiceConfig {
     basePath: "/"
 }
 
-service noterService on new http:Listener(myPort) {
+service noterService on mylistener {
 
     @http:ResourceConfig {
         path: "/addNotice",
