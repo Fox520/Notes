@@ -18,7 +18,7 @@ int count = 0;
 listener http:Listener mylistener = new(9090);
 
 @docker:Config {
-    name: "notes1",
+    name: "notes0",
     tag: "v1.0"
 }
 
