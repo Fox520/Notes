@@ -78,18 +78,17 @@ const RootQuery = new GraphQLObjectType({
             description: 'Return notices of specific day',
             resolve(parent, args) {
                 // code to get data from source
-                
                 var oo = rp(randomAddress() + "/getNotices")
                     .then(function (str) {
                         var json = JSON.parse(str)
-                        return json;
+                        return _.filter(json, { day: args.day });
                     })
                     .catch(function (err) {
                         // Crawling failed...
                         console.log(err);
                         return err;
                     });
-                return _.filter(oo, { day: args.day });;
+                return oo;
             }
         },
         weekNotices: {
@@ -98,7 +97,17 @@ const RootQuery = new GraphQLObjectType({
             description: 'Return notices of specific week',
             resolve(parent, args) {
                 // code to get data from source
-                return _.filter(notices, { weekNumber: args.weekNumber });
+                var oo = rp(randomAddress() + "/getNotices")
+                    .then(function (str) {
+                        var json = JSON.parse(str)
+                        return _.filter(json, { weekNumber: args.weekNumber });
+                    })
+                    .catch(function (err) {
+                        // Crawling failed...
+                        console.log(err);
+                        return err;
+                    });
+                return oo;
             }
         },
         monthNotices: {
@@ -107,7 +116,17 @@ const RootQuery = new GraphQLObjectType({
             description: 'Return notices of specific month',
             resolve(parent, args) {
                 // code to get data from source
-                return _.filter(notices, { month: args.month });
+                var oo = rp(randomAddress() + "/getNotices")
+                    .then(function (str) {
+                        var json = JSON.parse(str)
+                        return _.filter(json, { month: args.month });
+                    })
+                    .catch(function (err) {
+                        // Crawling failed...
+                        console.log(err);
+                        return err;
+                    });
+                return oo;
             }
         }
     }
