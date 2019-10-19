@@ -18,7 +18,7 @@ var notices = [
 ];
 
 var url = "http://192.168.56.101:";
-const instance_port_pool = [9090, 9091, 9092];//, 9093];
+const instance_port_pool = [9090, 9091, 9092, 9093, 9094];
 
 const NoticeType = new GraphQLObjectType({
     name: 'Notice',
@@ -78,7 +78,18 @@ const RootQuery = new GraphQLObjectType({
             description: 'Return notices of specific day',
             resolve(parent, args) {
                 // code to get data from source
-                return _.filter(notices, { day: args.day });
+                
+                var oo = rp(randomAddress() + "/getNotices")
+                    .then(function (str) {
+                        var json = JSON.parse(str)
+                        return json;
+                    })
+                    .catch(function (err) {
+                        // Crawling failed...
+                        console.log(err);
+                        return err;
+                    });
+                return _.filter(oo, { day: args.day });;
             }
         },
         weekNotices: {
