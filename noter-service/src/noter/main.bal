@@ -127,6 +127,22 @@ service noterService on mylistener {
     }
 
     @http:ResourceConfig {
+        path: "/internalDeleteNotice/{id}",
+        methods: ["GET"]
+    }
+    resource function internalDeleteNotice(http:Caller caller, http:Request request, string id) returns error?{
+        http:Response res = new;
+        if(notices.hasKey(id)){
+            json x = notices.remove(id);
+            res.setJsonPayload(<@untainted>x, contentType = "application/json");
+            check caller->respond(res);
+        }else{
+            res.setJsonPayload("notice not found", contentType = "application/json");
+            check caller->respond(res);
+        }
+    }
+
+    @http:ResourceConfig {
         path: "/internalAllNotices",
         methods: ["GET"]
     }
@@ -206,10 +222,11 @@ service noterService on mylistener {
         map<json> renderedJson = check map<json>.constructFrom(rawJSON);        
         // make sure id exists
         if(notices.hasKey(id)){
-            var e = notices.remove(id);
-            res.setJsonPayload(<@untainted>"delete successful", contentType = "application/json");
+            json e = notices.remove(id);
+            res.setJsonPayload(<@untainted>e, contentType = "application/json");
         }else{
-            res.setJsonPayload(<@untainted>"id not found", contentType = "application/json");
+            json response = deleteNotice(<@untainted>id);
+            res.setJsonPayload(response, contentType = "application/json");
         }
         check caller->respond(res);
     }
@@ -351,4 +368,20 @@ function getPreviousHash() returns string{
     }
 
     return "";
+}
+
+function deleteNotice(string id) returns json{
+    foreach string p in instance_ports {
+        if(p != myPort.toString()){
+            http:Client clientEP = new (addressPart + p);
+            var response = clientEP->get("/internalDeleteNotice/"+id);
+            if(response is http:Response){
+                var x = response.getJsonPayload();
+                if(x is json && x != "notice not found"){
+                    return <@untainted>x;
+                }
+            }
+        }
+    }
+    return "notice not found";
 }
