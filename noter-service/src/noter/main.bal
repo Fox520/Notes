@@ -59,7 +59,12 @@ service noterService on mylistener {
         ledger["hash"] = noticeHash;
         count = count + 1;
         ledger["height"] = count;
-        // no need to touch 'previous-hash'
+        // if our height is 1, search for previous hash from instance with greatest height
+        // use greatest height as it's more trusted
+        if(ledger["height"] == 1){
+            string h = getPreviousHash();
+            ledger["previous-hash"] = h;
+        }
         // gossip to other instances
         gossip();
         // return the data received as is
@@ -237,7 +242,27 @@ service noterService on mylistener {
         }
         var x = caller -> ok();
     }
-}
+
+    @http:ResourceConfig {
+        path: "/internalGetHeight",
+        methods: ["GET"]
+    }
+    resource function internalGetHeight(http:Caller caller, http:Request request) returns error?{
+        http:Response res = new;
+        res.setTextPayload(<@untainted>ledger["height"].toString());
+        check caller->respond(res);
+    }
+
+    @http:ResourceConfig {
+        path: "/internalGetPreviousHash",
+        methods: ["GET"]
+    }
+    resource function internalGetPreviousHash(http:Caller caller, http:Request request){
+        http:Response res = new;
+        res.setTextPayload(<@untainted>ledger["previous-hash"].toString());
+        var result = caller->respond(res);
+    }
+} // service end
 
 function getSha512(string data) returns string {
     byte[] output = crypto:hashSha512(data.toBytes());
@@ -287,4 +312,43 @@ function requestAllNotices() returns json[]{
         }
     }
     return <@untainted>m;
+}
+
+# Finds instance with greatest height and retrieve it's previous hash
+#
+# + return - previous hash
+function getPreviousHash() returns string{
+    string address = "";
+    int highest = -1;
+    foreach string p in instance_ports {
+        if(p != myPort.toString()){
+            http:Client clientEP = new (addressPart + p);
+            var response = clientEP->get("/internalGetHeight");
+            if(response is http:Response){
+                var txt = response.getTextPayload();
+                if(txt is string){
+                    int|error i = 'int:fromString(txt);
+                    if(i is int){
+                        if(i > highest){
+                            highest = i;
+                            address = p;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if(highest > 1){
+        http:Client clientEP = new (address);
+        var response = clientEP->get("/internalGetPreviousHash");
+        if(response is http:Response){
+            var txt = response.getTextPayload();
+            if(txt is string){
+                return <@untainted>txt;
+            }
+        }
+    }
+
+    return "";
 }
