@@ -45,31 +45,37 @@ service noterService on mylistener {
         int day = check 'int:fromString(renderedJson["day"].toString());
         int weekNumber = check 'int:fromString(renderedJson["weekNumber"].toString());
         int month = check 'int:fromString(renderedJson["month"].toString());
+        string submissionDate = renderedJson["submissionDate"].toString();
+        if(notices.hasKey(id)){
+            res.statusCode = 400;
+            res.setJsonPayload("Notice already exists", contentType = "application/json");
+            check caller->respond(res);
+        }else{
+            // add notice to storage, adding to ledger, gossip
+            json notice = {"id": id, "topic": topic, "description": description, "day": day, "weekNumber": weekNumber, "month": month, "submissionDate" : submissionDate};
+            notices[id] = notice;
 
-        // add notice to storage, adding to ledger, gossip
-        json notice = {"id": id, "topic": topic, "description": description, "day": day, "weekNumber": weekNumber, "month": month};
-        notices[id] = notice;
-
-        string noticeHash = getSha512(notice.toString());
-        ledger["data"] = notice;
-        // current becomes previous hash
-        if(ledger["height"] != 0){
-            ledger["previous-hash"] = ledger["hash"];
+            string noticeHash = getSha512(notice.toString());
+            ledger["data"] = notice;
+            // current becomes previous hash
+            if(ledger["height"] != 0){
+                ledger["previous-hash"] = ledger["hash"];
+            }
+            ledger["hash"] = noticeHash;
+            count = count + 1;
+            ledger["height"] = count;
+            // if our height is 1, search for previous hash from instance with greatest height
+            // use greatest height as it's more trusted
+            if(ledger["height"] == 1){
+                string h = getPreviousHash();
+                ledger["previous-hash"] = h;
+            }
+            // gossip to other instances
+            gossip();
+            // return the data received as is
+            res.setJsonPayload(<@untainted>rawJSON, contentType = "application/json");
+            check caller->respond(res);
         }
-        ledger["hash"] = noticeHash;
-        count = count + 1;
-        ledger["height"] = count;
-        // if our height is 1, search for previous hash from instance with greatest height
-        // use greatest height as it's more trusted
-        if(ledger["height"] == 1){
-            string h = getPreviousHash();
-            ledger["previous-hash"] = h;
-        }
-        // gossip to other instances
-        gossip();
-        // return the data received as is
-        res.setJsonPayload(<@untainted>rawJSON, contentType = "application/json");
-        check caller->respond(res);
     }
 
     @http:ResourceConfig {
@@ -175,6 +181,7 @@ service noterService on mylistener {
         var day = 'int:fromString(renderedJson["day"].toString());
         var weekNumber = 'int:fromString(renderedJson["weekNumber"].toString());
         var month = 'int:fromString(renderedJson["month"].toString());
+        string submissionDate = renderedJson["submissionDate"].toString();
         
         // make sure id exists
         if(notices.hasKey(id)){
@@ -187,6 +194,11 @@ service noterService on mylistener {
             if(description != ""){
                 map<json> m = <map<json>> notices[id];
                 m["description"] = description;
+                notices[id] = checkpanic json.constructFrom(m);  
+            }
+            if(submissionDate != ""){
+                map<json> m = <map<json>> notices[id];
+                m["submissionDate"] = submissionDate;
                 notices[id] = checkpanic json.constructFrom(m);  
             }
             if(day is int){
