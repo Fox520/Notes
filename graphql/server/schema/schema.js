@@ -147,8 +147,30 @@ const Mutation = new GraphQLObjectType({
             },
             resolve(parent, args) {
                 // code to send data to random server instance
-                // ...
-                return args
+                var options = {
+                    method: 'POST',
+                    uri: randomAddress()+"/addNotice",
+                    body: {
+                        id: args.id,
+                        topic: args.topic,
+                        description: args.description,
+                        day: args.day,
+                        weekNumber: args.weekNumber,
+                        month: args.month
+                    },
+                    json: true // Automatically stringifies the body to JSON
+                };
+                 
+                var oo = rp(options)
+                    .then(function (parsedBody) {
+                        //var json = JSON.parse(parsedBody)
+                        return parsedBody
+                    })
+                    .catch(function (err) {
+                        console.log("post failed yo")
+                        console.log(err)
+                    });
+                return oo;
             }
         },
         updateNotice: {
@@ -163,19 +185,51 @@ const Mutation = new GraphQLObjectType({
             },
             resolve(parent, args) {
                 // code to send data to random server instance
-                // ...
-                return args
+                var options = {
+                    method: 'POST',
+                    uri: randomAddress()+"/updateNotice",
+                    body: {
+                        id: args.id,
+                        topic: args.topic,
+                        description: args.description,
+                        day: args.day,
+                        weekNumber: args.weekNumber,
+                        month: args.month
+                    },
+                    json: true // Automatically stringifies the body to JSON
+                };
+                 
+                var oo = rp(options)
+                    .then(function (parsedBody) {
+                        //var json = JSON.parse(parsedBody)
+                        return parsedBody
+                    })
+                    .catch(function (err) {
+                        console.log("post failed yo")
+                        console.log(err)
+                    });
+                return oo;
             }
         },
-        removeNotice: {
+        deleteNotice: {
             type: NoticeType,
             args: {
                 id: { type: new GraphQLNonNull(GraphQLInt) }
             },
             resolve(parent, args) {
                 // code to send data to random server instance
-                // ...
-                return args
+                var out = rp(randomAddress() + "/deleteNotice/" + args.id)
+                    .then(function (str) {
+                        //var json = JSON.parse(str)
+                        // console.log(str)
+                        return str;
+                    })
+                    .catch(function (err) {
+                        // Crawling failed...
+                        //console.log(err);
+                        return err;
+                    });
+                return out
             }
         }
     }
