@@ -7,7 +7,7 @@ sudo apt install docker.io docker-compose
 ```
 
 ## Running the containers
-Working directory: [noter-service/src/noter]()
+Working directory: [noter-service/src/noter](noter-service/src/noter)
 
 ```
 sudo build.sh
