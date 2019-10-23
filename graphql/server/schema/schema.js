@@ -10,12 +10,6 @@ const {
     GraphQLList,
     GraphQLNonNull } = graphql;
 
-// dummy data
-var notices = [
-    { topic: 'the first topic', description: 'the first description', id: '1', day: 10, weekNumber: 4, month: 8 },
-    { topic: 'the second topic', description: 'the second description', id: '2', day: 4, weekNumber: 8, month: 10 },
-    { topic: 'the third topic', description: 'the third description', id: '3', day: 5, weekNumber: 15, month: 9 }
-];
 
 var url = "http://192.168.56.101:";
 const instance_port_pool = [9090, 9091, 9092, 9093, 9094];
@@ -28,7 +22,8 @@ const NoticeType = new GraphQLObjectType({
         description: { type: GraphQLString },
         day: { type: GraphQLInt },
         weekNumber: { type: GraphQLInt },
-        month: { type: GraphQLInt }
+        month: { type: GraphQLInt },
+        submissionDate: { type: GraphQLString }
     })
 });
 
@@ -143,24 +138,26 @@ const Mutation = new GraphQLObjectType({
                 description: { type: GraphQLString },
                 day: { type: new GraphQLNonNull(GraphQLInt) },
                 weekNumber: { type: new GraphQLNonNull(GraphQLInt) },
-                month: { type: new GraphQLNonNull(GraphQLInt) }
+                month: { type: new GraphQLNonNull(GraphQLInt) },
+                submissionDate: { type: new GraphQLNonNull(GraphQLString) }
             },
             resolve(parent, args) {
                 // code to send data to random server instance
                 var options = {
                     method: 'POST',
-                    uri: randomAddress()+"/addNotice",
+                    uri: randomAddress() + "/addNotice",
                     body: {
                         id: args.id,
                         topic: args.topic,
                         description: args.description,
                         day: args.day,
                         weekNumber: args.weekNumber,
-                        month: args.month
+                        month: args.month,
+                        submissionDate: args.submissionDate,
                     },
                     json: true // Automatically stringifies the body to JSON
                 };
-                 
+
                 var oo = rp(options)
                     .then(function (parsedBody) {
                         //var json = JSON.parse(parsedBody)
@@ -181,24 +178,26 @@ const Mutation = new GraphQLObjectType({
                 description: { type: GraphQLString },
                 day: { type: GraphQLInt },
                 weekNumber: { type: GraphQLInt },
-                month: { type: GraphQLInt }
+                month: { type: GraphQLInt },
+                submissionDate: { type: GraphQLString }
             },
             resolve(parent, args) {
                 // code to send data to random server instance
                 var options = {
                     method: 'POST',
-                    uri: randomAddress()+"/updateNotice",
+                    uri: randomAddress() + "/updateNotice",
                     body: {
                         id: args.id,
                         topic: args.topic,
                         description: args.description,
                         day: args.day,
                         weekNumber: args.weekNumber,
-                        month: args.month
+                        month: args.month,
+                        submissionDate: args.submissionDate
                     },
                     json: true // Automatically stringifies the body to JSON
                 };
-                 
+
                 var oo = rp(options)
                     .then(function (parsedBody) {
                         //var json = JSON.parse(parsedBody)

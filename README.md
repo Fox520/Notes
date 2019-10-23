@@ -23,7 +23,8 @@ node app
 ```docker ps  ``` to view the instances
 
 ```docker-compose down   ``` to stop all instances
-
+# Architecture design overview (abstract)
+![architecture](arch.png?raw=true "Architecture design overview (abstract)")
 # Some info
 Languages used:
 * [Ballerina](https://ballerina.io/) -> backend
