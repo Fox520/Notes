@@ -10,7 +10,6 @@ string[] instance_ports = ["9090", "9091", "9092", "9093", "9094"];
 map<json> ledger = {"data": "", "hash": "", "previous-hash": "", "height": 0};
 // maybe use database in future
 map<json> notices = {};
-int count = 0;
 // use an address that can be accessed by all containers
 // localhost refers to the container itself
 string addressPart = "http://192.168.56.101:"; // change this according to machine ip
@@ -46,6 +45,11 @@ service noterService on mylistener {
         int weekNumber = check 'int:fromString(renderedJson["weekNumber"].toString());
         int month = check 'int:fromString(renderedJson["month"].toString());
         string submissionDate = renderedJson["submissionDate"].toString();
+        // don't accept if id is empty
+        if(id == ""){
+            check caller -> ok();
+            return;
+        }
         if(notices.hasKey(id)){
             res.statusCode = 400;
             res.setJsonPayload("Notice already exists", contentType = "application/json");
@@ -57,19 +61,25 @@ service noterService on mylistener {
 
             string noticeHash = getSha512(notice.toString());
             ledger["data"] = notice;
-            // current becomes previous hash
-            if(ledger["height"] != 0){
-                ledger["previous-hash"] = ledger["hash"];
-            }
+            
             ledger["hash"] = noticeHash;
-            count = count + 1;
-            ledger["height"] = count;
-            // if our height is 1, search for previous hash from instance with greatest height
-            // use greatest height as it's more trusted
+            int theHeight = check 'int:fromString(ledger["height"].toString());
+            ledger["height"] = theHeight + 1;
+            
             if(ledger["height"] == 1){
+                // current becomes previous hash
+                ledger["previous-hash"] = ledger["hash"];
                 string h = getPreviousHash();
-                ledger["previous-hash"] = h;
+                log:printInfo(myPort.toString()+" Hash received: "+ h);
+                if(h.length() == 0){
+                    ledger["previous-hash"] = noticeHash;
+                    log:printInfo("["+myPort.toString()+"] Using own hash");
+                }else{
+                    ledger["previous-hash"] = h;
+                    log:printInfo("["+myPort.toString()+"] Using the received hash [height] "+ledger["height"].toString());
+                }
             }
+            log:printInfo("Notice id: "+id+" created on instance "+myPort.toString()+ " [height] "+ledger["height"].toString());
             // gossip to other instances
             gossip();
             // return the data received as is
@@ -253,23 +263,16 @@ service noterService on mylistener {
         map<json> renderedJson = check map<json>.constructFrom(jsonValue);
         // The validation entails checking the hash of the previous ledger and the signature of
         // the current one
-        // check if is genesis to us
-        if(ledger["height"] == 0){
-            // since we have nothing to compare with, just accept
-            ledger["data"] = renderedJson["data"];
-            ledger["hash"] = renderedJson["hash"];
-            ledger["height"] = check 'int:fromString(ledger["height"].toString()) + 1;
-            log:printInfo("ledger accepted as genesis");
-        }else if(renderedJson["previous-hash"] == ledger["hash"]){
+        if( ledger["hash"] == "" || (renderedJson["previous-hash"] == ledger["hash"])){
             ledger["previous-hash"] = ledger["hash"];
             ledger["data"] = renderedJson["data"];
             ledger["hash"] = renderedJson["hash"];
             ledger["height"] = check 'int:fromString(ledger["height"].toString()) + 1;
-            log:printInfo("ledger accepted");
+            log:printInfo("["+myPort.toString()+"] ledger accepted [height] "+ledger["height"].toString());
         }else{
-            log:printInfo("ledger not accepted");
+            log:printInfo("["+myPort.toString()+"] ledger not accepted [height] "+ledger["height"].toString());
         }
-        var x = caller -> ok();
+        check caller -> ok();
     }
 
     @http:ResourceConfig {
@@ -367,13 +370,14 @@ function getPreviousHash() returns string{
             }
         }
     }
-
+    // greater than 1 <- our current height
     if(highest > 1){
         http:Client clientEP = new (address);
         var response = clientEP->get("/internalGetPreviousHash");
         if(response is http:Response){
             var txt = response.getTextPayload();
             if(txt is string){
+                log:printInfo("hash from "+address+" height: "+highest.toString());
                 return <@untainted>txt;
             }
         }
